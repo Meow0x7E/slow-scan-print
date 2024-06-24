@@ -1,0 +1,13 @@
+[package]
+name = "slow-scan-print"
+version = "0.2.1"
+authors = ["Meow0x7E <Meow0x7E@outlook.com>"]
+edition = "2021"
+description = "Text is printed at fixed intervals by character or by line, and its name is inspired by SSTV (Slow Scan TV)."
+license = "LGPL-3.0"
+
+[dependencies]
+clap = { version = "4.5.7", features = ["derive", "unicode", "wrap_help"] }
+console = "0.15.8"
+duration-str = "0.11.2"
+signal-hook = "0.3.17"

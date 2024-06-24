@@ -1,0 +1,9 @@
+edition = "2021"
+
+max_width = 160
+
+group_imports = "StdExternalCrate"
+trailing_comma = "Never"
+trailing_semicolon = true
+brace_style = "PreferSameLine"
+fn_single_line = true
