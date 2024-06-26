@@ -1,5 +1,5 @@
 use std::{
-    io::{stdin, BufRead, BufReader, Error},
+    io::{self, stdin, BufReader},
     sync::{
         atomic::{AtomicBool, AtomicUsize, Ordering},
         Arc
@@ -10,7 +10,7 @@ use std::{
 use clap::Parser;
 use console::Term;
 use signal_hook::{consts::signal, low_level::exit};
-use slow_scan_print::slow_scan_write;
+use slow_scan_print::{print_chars_with_reader, print_lines_with_reader, slow_scan_write};
 
 #[derive(Parser, Debug)]
 #[command(name = "slow-scan-print", version)]
@@ -40,7 +40,7 @@ struct Args {
     hide_cursor: bool
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), io::Error> {
     let args = Args::parse();
     let time = duration_str::parse(args.time).expect("时间格式不正确!");
     let mut term = Term::stdout();
@@ -55,12 +55,9 @@ fn main() -> Result<(), Error> {
     }
 
     if args.line_mode {
-        let lines = reader.lines().map(|line| line.unwrap() + "\n");
-        slow_scan_write(lines, time, &mut term)?;
+        print_lines_with_reader!(reader, time, &mut term)?;
     } else {
-        for line in reader.lines() {
-            slow_scan_write(line.unwrap().chars(), time, &mut term)?;
-        }
+        print_chars_with_reader!(reader, time, &mut term)?;
     }
 
     if args.hide_cursor {

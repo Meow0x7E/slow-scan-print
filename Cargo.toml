@@ -1,6 +1,6 @@
 [package]
 name = "slow-scan-print"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Meow0x7E <Meow0x7E@outlook.com>"]
 edition = "2021"
 description = "Text is printed at fixed intervals by character or by line, and its name is inspired by SSTV (Slow Scan TV)."

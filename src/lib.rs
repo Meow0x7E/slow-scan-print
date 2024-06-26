@@ -49,3 +49,127 @@ where
     }
     Ok(())
 }
+
+#[macro_export]
+macro_rules! print_chars {
+    ($display:expr) => {{
+        let dur = Duration::from_millis(20);
+        let mut stdout = io::stdout();
+        slow_scan_write(
+            $display.lines().flat_map(|l| {
+                let mut v: Vec<char> = format!("{}", l).chars().collect();
+                v.push('\n');
+                v
+            }),
+            dur,
+            &mut stdout
+        )
+    }};
+    ($display:expr, $dur:expr) => {{
+        let mut stdout = io::stdout();
+        slow_scan_write(
+            $display.lines().flat_map(|l| {
+                let mut v: Vec<char> = format!("{}", l).chars().collect();
+                v.push('\n');
+                v
+            }),
+            $dur,
+            &mut stdout
+        )
+    }};
+    ($display:expr, $dur:expr, $writer:expr) => {{
+        slow_scan_write(
+            $display.lines().flat_map(|l| {
+                let mut v: Vec<char> = format!("{}", l).chars().collect();
+                v.push('\n');
+                v
+            }),
+            $dur,
+            $writer
+        )
+    }};
+}
+
+#[macro_export]
+macro_rules! print_chars_with_reader {
+    ($reader:expr) => {{
+        let dur = Duration::from_millis(20);
+        let mut stdout = io::stdout();
+        slow_scan_write(
+            std::io::BufRead::lines($reader).flat_map(|l| {
+                let mut v: Vec<char> = format!("{}", l.unwrap_or(String::from(""))).chars(String::from("")).collect();
+                v.push('\n');
+                v
+            }),
+            dur,
+            &mut stdout
+        )
+    }};
+    ($reader:expr, $dur:expr) => {{
+        let mut stdout = io::stdout();
+        slow_scan_write(
+            std::io::BufRead::lines($reader).flat_map(|l| {
+                let mut v: Vec<char> = format!("{}", l.unwrap_or(String::from(""))).chars(String::from("")).collect();
+                v.push('\n');
+                v
+            }),
+            $dur,
+            &mut stdout
+        )
+    }};
+    ($reader:expr, $dur:expr, $writer:expr) => {{
+        slow_scan_write(
+            std::io::BufRead::lines($reader).flat_map(|l| {
+                let mut v: Vec<char> = format!("{}", l.unwrap_or(String::from(""))).chars().collect();
+                v.push('\n');
+                v
+            }),
+            $dur,
+            $writer
+        )
+    }};
+}
+
+#[macro_export]
+macro_rules! print_lines {
+    ($display:expr) => {{
+        let dur = Duration::from_millis(20);
+        let mut stdout = io::stdout();
+        slow_scan_write($display.lines().map(|l| format!("{}\n", l)), dur, &mut stdout)
+    }};
+    ($display:expr, $dur:expr) => {{
+        let mut stdout = io::stdout();
+        slow_scan_write($display.lines().map(|l| format!("{}\n", l)), $dur, &mut stdout)
+    }};
+    ($display:expr, $dur:expr, $writer:expr) => {{
+        slow_scan_write($display.lines().map(|l| format!("{}\n", l)), $dur, $writer)
+    }};
+}
+
+#[macro_export]
+macro_rules! print_lines_with_reader {
+    ($reader:expr) => {{
+        let dur = Duration::from_millis(20);
+        let mut stdout = io::stdout();
+        slow_scan_write(
+            std::io::BufRead::lines($reader).map(|l| format!("{}\n", l.unwrap_or(String::from("")))),
+            dur,
+            &mut stdout
+        )
+    }};
+    ($reader:expr, $dur:expr) => {{
+        let mut stdout = io::stdout();
+        slow_scan_write(
+            std::io::BufRead::lines($reader).map(|l| format!("{}\n", l.unwrap_or(String::from("")))),
+            $dur,
+            &mut stdout()
+        )
+    }};
+    ($reader:expr, $dur:expr, $writer:expr) => {{
+        slow_scan_write(
+            std::io::BufRead::lines($reader).map(|l| format!("{}\n", l.unwrap_or(String::from("")))),
+            $dur,
+            $writer
+        )
+    }};
+}
