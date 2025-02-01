@@ -1,0 +1,12 @@
+[error]
+dbf620f1-e275-44c3-929a-5a946ca5daae = "The logic for parsing the time string should not be reachable. The string to handle is hardcoded."
+14837326-ccb0-42cd-9b30-27a4e64b5d01 = "This match branch logic should not be reachable."
+c5b72dec-ae1b-49fb-8fb6-eff11313faea = "Failed to register Signai Hook"
+026d13a1-ea8b-409a-8a4c-2ba551b475db = "I/O error occurred. Slow scan print failed"
+
+[clap]
+about = "Read text from standard input, print character by character or line by line at a specified interval. The name is inspired by slow-scan television (SSTV)"
+delay.help = "Set the delay between text prints. Default unit is seconds. Supports simple calculations (+, *) and time units such as (y, mon, w, d, h, m, s, ms, µs, ns)"
+delay.value_parser.err_msg = "Time format error. Use --help as an argument to run the program for format help"
+line-mode.help = "Print text line by line instead of character by character"
+hide-cursor.help = "Hide cursor during printing and show after completion"

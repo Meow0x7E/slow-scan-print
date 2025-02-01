@@ -1,0 +1,12 @@
+[error]
+dbf620f1-e275-44c3-929a-5a946ca5daae = "这个时间字符串解析错误逻辑上应该不可达的，要被处理的字符串是写死的"
+14837326-ccb0-42cd-9b30-27a4e64b5d01 = "这个 match 分支逻辑上是不可达的"
+c5b72dec-ae1b-49fb-8fb6-eff11313faea = "注册 Signai Hook 失败"
+026d13a1-ea8b-409a-8a4c-2ba551b475db = "发生 I/O 错误，慢扫描打印失败"
+
+[clap]
+about = "从标准输入读取文本，按字符或行以一定时间间隔进行打印。名称的灵感来源是慢扫描电视(SSTV)"
+delay.help = "设置文本打印间隔。默认单位是秒。支持简单的计算(+, *)。支持的时间单位为(y, mon, w, d, h, m, s, ms, µs, ns)"
+delay.value_parser.err_msg = "时间格式错误，使用 --help 作为参数运行程序以获得格式帮助"
+line-mode.help = "逐行打印文本，而不是逐字打印"
+hide-cursor.help = "在打印时隐藏光标并在完成后显示"
