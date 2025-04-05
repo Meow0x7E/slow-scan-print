@@ -1,0 +1,50 @@
+# vim:set ft=yaml sts=2 ts=2 sw=2 et:
+_version: 1
+
+clap:
+  about: |-
+    Read text from stdin or specified files, and print with configurable delays in character-by-character or line-by-line mode.
+    Tool name inspired by Slow Scan Television (SSTV)
+  help: Show help summary (use "--help" for detailed usage)
+  long_help: Show help message (use "-h" for brief summary)
+  delay:
+    help: "Set character print delay duration (default unit: seconds/s). Supports basic arithmetic (+, *). See \"--help\" for full syntax"
+    long_help: |-
+      Set character print delay duration (default unit: seconds/s). Supports basic arithmetic (+, *)
+
+      Time unit reference:
+      Unit      Time Scale    Supported Aliases (case-insensitive)
+      --------  ------------  ------------------------------------
+      y         year          y, year, 年
+      mon       month         mon, month, 月
+      w         week          w, week, 周
+      d         day           d, day, 日
+      h         hour          h, hr, hour, 小时
+      m         minute        m, M, minute, min, 分钟
+      s         second        s, second, sec, 秒
+      ms        millisecond   ms, millisecond, msec, 毫秒
+      µs        microsecond   µs, µsecond, microsecond, µsec, 微秒
+      ns        nanosecond    ns, nanosecond, nsec, 纳秒
+
+      Examples:
+      1.5h30m   => 1 hour 30 minutes
+      100ms * 2 => 100ms * 2 = 200ms
+      1 + 1 + 100ms => 1s + 1s + 100ms = 2100ms
+  hide_cursor:
+    help: Hide terminal cursor during printing and restore after exit
+  line_mode:
+    help: Enable line-by-line printing mode
+  files:
+    help: Specify input file paths (supports multiple files). Read from stdin when argument is "-" or file not found
+
+error:
+  set_ctrlc_handle_error: |-
+    Failed to register Ctrl+C handler. Terminal cursor may not restore properly on abnormal exit.
+    You can suppress this message by closing stderr.
+  can_not_open_file: "Cannot open file \"%{name}\": %{error}"
+
+panic:
+  convert_string_to_duration_error: Invalid time format argument. See time format examples with "--help"
+  io_error_on_slow_scan_print: |-
+    I/O error occurred during slow-scan printing
+    %{error}

@@ -1,0 +1,8 @@
+{
+    "editor.fontFamily": "'JetBrains Mono', 'monospace', monospace",
+    "editor.renderWhitespace": "all",
+    "i18n-ally.localesPaths": [
+        "language"
+    ],
+    "i18n-ally.sourceLanguage": "zh-CN",
+}

@@ -1,136 +1,200 @@
 use std::{
-    io::{BufRead, BufReader, stdin},
-    sync::{
-        Arc,
-        atomic::{AtomicUsize, Ordering}
-    },
-    thread::{self},
+    fs::File,
+    io::{self, BufRead, BufReader},
+    path::Path,
+    process::exit,
     time::Duration
 };
 
 use clap::{Arg, ArgAction, Command, arg};
 use console::Term;
-use rust_i18n::t;
-use signal_hook::{consts::signal, low_level::exit};
+use rust_i18n::{set_locale, t};
 use slow_scan_print::SlowScanWrite;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Args {
     time: Duration,
     line_mode: bool,
-    hide_cursor: bool
+    hide_cursor: bool,
+    files: Vec<String>
 }
 
-rust_i18n::i18n!("locales", fallback = "zh-CN");
+#[cfg(all(feature = "safe", feature = "unsafe"))]
+compile_error!("feature \"safe\" and feature \"unsafe\" cannot be enabled at the same time");
+
+rust_i18n::i18n!("language", fallback = "zh-CN");
 
 fn main() {
-    rust_i18n::set_locale(&sys_locale::get_locale().unwrap_or_else(|| String::from("zh-CN")));
+    init_locale();
 
-    let args = parser_args();
-    let print_handle = thread::spawn(move || slow_scan_print(args));
+    let args = args_handle();
+    let mut stdout = Term::stdout();
+    let stderr = Term::stderr();
 
-    let listen = Arc::new(AtomicUsize::new(0));
-    const SIGINT_U: usize = signal::SIGINT as usize;
-    signal_hook::flag::register_usize(signal::SIGINT, Arc::clone(&listen), SIGINT_U)
-        .unwrap_or_else(|_| panic!("{}", t!("error.c5b72dec-ae1b-49fb-8fb6-eff11313faea")));
+    #[cfg(debug_assertions)]
+    let _ = stderr.write_line(format!("Args: {:#?}", args).as_str());
 
-    let delay = duration_str::parse("100ms").unwrap_or_else(|_| unreachable!("{}", t!("error.dbf620f1-e275-44c3-929a-5a946ca5daae")));
-    loop {
-        match listen.load(Ordering::Relaxed) {
-            0 => {
-                if print_handle.is_finished() {
-                    break;
-                }
-                thread::sleep(delay);
+    setup_ctrlc_handle(stdout.clone(), stderr.clone());
+
+    if args.hide_cursor {
+        stdout.hide_cursor().unwrap()
+    }
+
+    for name in args.files {
+        let reader = match create_reader(name.as_str()) {
+            Ok(it) => it,
+            Err(it) => {
+                let _ = stderr.write_line(
+                    t!("error.can_not_open_file", name = it.0, error = it.1)
+                        .to_string()
+                        .as_str()
+                );
                 continue;
             }
-            SIGINT_U => {
-                break;
-            }
-            _ => {
-                unreachable!("{}", t!("error.14837326-ccb0-42cd-9b30-27a4e64b5d01"))
-            }
-        }
+        };
+
+        let iter = create_iterator(reader, args.line_mode);
+
+        stdout
+            .slow_scan_write(iter, args.time)
+            .unwrap_or_else(|it| panic!("{}\n{}", t!("panic.io_error_on_slow_scan_print"), it));
     }
 
-    Term::stdout().show_cursor().unwrap();
-    exit(0);
+    if args.hide_cursor {
+        stdout.show_cursor().unwrap()
+    }
 }
 
-fn parser_args() -> Args {
-    #[inline]
-    fn delay(it: &str) -> Duration {
-        match duration_str::parse_std(it) {
-            Ok(it) => it,
-            Err(_) => panic!("{}", t!("clap.delay.value_parser.err_msg"))
-        }
-    }
+#[inline]
+fn init_locale() {
+    if let Some(it) = sys_locale::get_locale() {
+        set_locale(it.as_str());
+    };
+}
 
-    let matches = Command::new("slow-scan-print")
+fn args_handle() -> Args {
+    let args = [
+        arg!(delay: -d --delay <TIME>)
+            .short_alias('t')
+            .alias("time")
+            .action(ArgAction::Set)
+            .default_value("20ms")
+            .help(t!("clap.delay.help").to_string())
+            .long_help(t!("clap.delay.long_help").to_string()),
+        Arg::new("line-mode")
+            .short('l')
+            .long("line-mode")
+            .action(ArgAction::SetTrue)
+            .help(t!("clap.line_mode.help").to_string()),
+        Arg::new("hide-cursor")
+            .short('c')
+            .long("hide-cursor")
+            .action(ArgAction::SetTrue)
+            .help(t!("clap.hide_cursor.help").to_string()),
+        Arg::new("files")
+            .action(ArgAction::Append)
+            .default_value("-")
+            .help(t!("clap.files.help").to_string()),
+        Arg::new("help")
+            .short('h')
+            .short_alias('?')
+            .long("help")
+            .action(ArgAction::Help)
+            .help(format!("{}", t!("clap.help")))
+            .long_help(format!("{}", t!("clap.long_help")))
+    ];
+
+    let matches = Command::new(env!("CARGO_PKG_NAME"))
+        .disable_version_flag(true)
+        .disable_help_flag(true)
+        .version(env!("CARGO_PKG_VERSION"))
         .about(t!("clap.about").to_string())
-        .author("Meow0x7E <Meow0x7E@outlook.com>")
-        .args(&[
-            arg!(delay: -d --delay <TIME>)
-                .short_alias('t')
-                .alias("time")
-                .action(ArgAction::Set)
-                .default_value("20ms")
-                .help(format!("{}", t!("clap.delay.help"))),
-            Arg::new("line-mode")
-                .short('l')
-                .long("line-mode")
-                .action(ArgAction::SetTrue)
-                .help(format!("{}", t!("clap.line-mode.help"))),
-            Arg::new("hide-cursor")
-                .short('c')
-                .long("hide-cursor")
-                .action(ArgAction::SetTrue)
-                .help(format!("{}", t!("clap.hide-cursor.help")))
-        ])
+        .author(env!("CARGO_PKG_AUTHORS"))
+        .args(&args)
         .get_matches();
 
+    let time = match matches.get_one::<String>("delay") {
+        Some(it) => duration_str::parse_std(it).unwrap_or_else(|it| panic!("{}", t!("panic.convert_string_to_duration_error", error = it))),
+        #[cfg(feature = "unsafe")]
+        None => unsafe { std::hint::unreachable_unchecked() },
+        #[cfg(feature = "safe")]
+        None => unreachable!()
+    };
+
+    let line_mode = match matches.get_one::<bool>("line-mode") {
+        Some(it) => *it,
+        #[cfg(feature = "unsafe")]
+        None => unsafe { std::hint::unreachable_unchecked() },
+        #[cfg(feature = "safe")]
+        None => unreachable!()
+    };
+
+    let hide_cursor = match matches.get_one::<bool>("hide-cursor") {
+        Some(it) => *it,
+        #[cfg(feature = "unsafe")]
+        None => unsafe { std::hint::unreachable_unchecked() },
+        #[cfg(feature = "safe")]
+        None => unreachable!()
+    };
+
+    let files = match matches.get_many::<String>("files") {
+        Some(it) => it.map(|it| it.to_owned()).collect::<Vec<String>>(),
+        #[cfg(feature = "unsafe")]
+        None => unsafe { std::hint::unreachable_unchecked() },
+        #[cfg(feature = "safe")]
+        None => unreachable!()
+    };
+
     Args {
-        time: match matches.get_one::<String>("delay") {
-            Some(it) => delay(it),
-            None => duration_str::parse_std("20ms").unwrap_or_else(|_| unreachable!("{}", t!("error.dbf620f1-e275-44c3-929a-5a946ca5daae")))
-        },
-        line_mode: match matches.get_one::<bool>("line-mode") {
-            Some(it) => *it,
-            None => false
-        },
-        hide_cursor: match matches.get_one::<bool>("hide-cursor") {
-            Some(it) => *it,
-            None => false
-        }
+        time: time,
+        line_mode: line_mode,
+        hide_cursor: hide_cursor,
+        files: files
     }
 }
 
-fn slow_scan_print(args: Args) {
-    let mut term = Term::stdout();
-    let stdin = stdin();
-    let reader = BufReader::new(stdin.lock());
+fn setup_ctrlc_handle(stdout: Term, stderr: Term) {
+    ctrlc::set_handler(move || {
+        stdout.show_cursor().unwrap();
+        exit(1)
+    })
+    .unwrap_or_else(|it| {
+        let _ = stderr.write_line(
+            t!("error.set_ctrlc_handle_error", error = it)
+                .to_string()
+                .as_str()
+        );
+    });
+}
 
-    if args.hide_cursor {
-        term.hide_cursor().unwrap()
-    }
-
-    if args.line_mode {
-        let iter = reader
-            .lines()
-            .map(|l| format!("{}\n", l.unwrap_or(String::from(""))));
-        term.slow_scan_write(iter, args.time)
-            .unwrap_or_else(|it| panic!("{}\n{}", t!("error.026d13a1-ea8b-409a-8a4c-2ba551b475db"), it));
+fn create_reader(name: &str) -> Result<BufReader<Box<dyn io::Read>>, (&str, io::Error)> {
+    if name == "-" {
+        let stdin = io::stdin();
+        Ok(BufReader::new(Box::new(stdin)))
     } else {
-        let iter = reader.lines().flat_map(|l| {
-            let mut v: Vec<char> = l.unwrap_or(String::from("")).chars().collect();
-            v.push('\n');
-            v
-        });
-        term.slow_scan_write(iter, args.time)
-            .unwrap_or_else(|it| panic!("{}\n{}", t!("error.026d13a1-ea8b-409a-8a4c-2ba551b475db"), it));
+        let file = match File::open(Path::new(name)) {
+            Ok(it) => it,
+            Err(err) => return Err((name, err))
+        };
+        Ok(BufReader::new(Box::new(file)))
     }
+}
 
-    if args.hide_cursor {
-        term.show_cursor().unwrap()
+fn create_iterator(reader: BufReader<Box<dyn io::Read>>, line_mode: bool) -> Box<dyn Iterator<Item = String>> {
+    let iter = reader.lines().map(|it| {
+        let mut it = it.unwrap_or(String::new());
+        #[cfg(target_family = "windows")]
+        it.push('\r');
+        it.push('\n');
+        it
+    });
+
+    if line_mode {
+        Box::new(iter)
+    } else {
+        Box::new(
+            iter.flat_map(|it| it.chars().collect::<Vec<_>>())
+                .map(|it| it.to_string())
+        )
     }
 }

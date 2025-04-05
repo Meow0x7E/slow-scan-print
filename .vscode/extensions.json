@@ -1,0 +1,8 @@
+{
+    "recommendations": [
+        "rust-lang.rust-analyzer",
+        "lokalise.i18n-ally",
+        "tamasfe.even-better-toml",
+        "redhat.vscode-yaml"
+    ]
+}

@@ -1,15 +1,17 @@
 [package]
 name = "slow-scan-print"
-version = "0.3.0"
+version = "1.0.0"
 authors = ["Meow0x7E <Meow0x7E@outlook.com>"]
 edition = "2024"
 description = "Text is printed at fixed intervals by character or by line, and its name is inspired by SSTV (Slow Scan TV)."
 license = "MIT"
+repository = "https://github.com/Meow0x7E/slow-scan-print"
 
 [dependencies]
 clap = { version = "4.5.7", features = ["unicode", "wrap_help", "cargo"] }
 console = "0.15.8"
-duration-str = "0.12.0"
+ctrlc = { version = "3.4.5", features = ["termination"] }
+duration-str = { version = "0.17.0", features = ["cn_unit", "lowercase"] }
 rust-i18n = "3.1.2"
 signal-hook = "0.3.17"
 sys-locale = "0.3.2"
@@ -18,3 +20,20 @@ sys-locale = "0.3.2"
 strip = true
 lto = true
 codegen-units = 1
+
+[package.metadata.i18n]
+# The available locales for your application, default: ["en"].
+available-locales = ["en", "zh-CN"]
+
+# The default locale, default: "en".
+default-locale = "zh-CN"
+
+# Path for your translations YAML file, default: "locales".
+# This config for let `cargo i18n` command line tool know where to find your translations.
+# You must keep this path same as the one you pass to method `rust_i18n::i18n!`.
+load-path = "language"
+
+[features]
+default = ["safe"]
+safe = []
+unsafe = []
