@@ -6,7 +6,7 @@ use std::{
     time::Duration
 };
 
-use clap::{Arg, ArgAction, Command, arg};
+use clap::{arg, Arg, ArgAction, Command};
 use console::Term;
 use rust_i18n::{set_locale, t};
 use slow_scan_print::SlowScanWrite;
@@ -146,10 +146,10 @@ fn args_handle() -> Args {
     };
 
     Args {
-        time: time,
-        line_mode: line_mode,
-        hide_cursor: hide_cursor,
-        files: files
+        time,
+        line_mode,
+        hide_cursor,
+        files
     }
 }
 
@@ -182,7 +182,7 @@ fn create_reader(name: &str) -> Result<BufReader<Box<dyn io::Read>>, (&str, io::
 
 fn create_iterator(reader: BufReader<Box<dyn io::Read>>, line_mode: bool) -> Box<dyn Iterator<Item = String>> {
     let iter = reader.lines().map(|it| {
-        let mut it = it.unwrap_or(String::new());
+        let mut it = it.unwrap_or_else(|_| String::new());
         #[cfg(target_family = "windows")]
         it.push('\r');
         it.push('\n');
