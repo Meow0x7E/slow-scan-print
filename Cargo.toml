@@ -1,6 +1,6 @@
 [package]
 name = "slow-scan-print"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Meow0x7E <Meow0x7E@outlook.com>"]
 edition = "2021"
 description = "Text is printed at fixed intervals by character or by line, and its name is inspired by SSTV (Slow Scan TV)."
@@ -12,10 +12,17 @@ categories = ["command-line-interface", "command-line-utilities"]
 clap = { version = "4.5.7", features = ["unicode", "wrap_help", "cargo"] }
 console = "0.15.8"
 ctrlc = { version = "3.4.5", features = ["termination"] }
-duration-str = { version = "0.17.0", features = ["cn_unit", "lowercase"] }
+duration-str = { version = "0.17.0", features = [
+    "calc",
+    "cn_unit",
+    "lowercase",
+], default-features = false }
+line-ending = "1.5.1"
+once_cell = "1.21.3"
 rust-i18n = "3.1.2"
-signal-hook = "0.3.17"
 sys-locale = "0.3.2"
+unicode-width = { version = "0.2.0", optional = true }
+utf8-chars = "3.0.5"
 
 [profile.release]
 strip = true
@@ -24,7 +31,7 @@ codegen-units = 1
 
 [package.metadata.i18n]
 # The available locales for your application, default: ["en"].
-available-locales = ["en", "zh-CN"]
+available-locales = ["en-US", "zh-CN", "zh-TW", "zh-HK"]
 
 # The default locale, default: "en".
 default-locale = "zh-CN"
@@ -35,6 +42,7 @@ default-locale = "zh-CN"
 load-path = "language"
 
 [features]
-default = ["safe"]
+default = ["safe", "unicode-width"]
 safe = []
 unsafe = []
+unicode-width = ["dep:unicode-width"]

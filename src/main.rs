@@ -1,67 +1,50 @@
+#[cfg(all(feature = "safe", feature = "unsafe"))]
+compile_error!("feature \"safe\" and feature \"unsafe\" cannot be enabled at the same time");
+
 use std::{
-    fs::File,
-    io::{self, BufRead, BufReader},
-    path::Path,
+    io::{BufRead, BufReader},
     process::exit,
     time::Duration
 };
 
 use clap::{arg, Arg, ArgAction, Command};
 use console::Term;
+use line_ending::LineEnding;
+use once_cell::sync::Lazy;
 use rust_i18n::{set_locale, t};
-use slow_scan_print::SlowScanWrite;
+use slow_scan_print::{
+    input::{ErrorAction, InputSource},
+    output::SlowScanWrite
+};
+use utf8_chars::BufReadCharsExt;
 
 #[derive(Debug, Clone)]
 struct Args {
-    time: Duration,
+    delay: Duration,
     line_mode: bool,
     hide_cursor: bool,
     files: Vec<String>
 }
 
-#[cfg(all(feature = "safe", feature = "unsafe"))]
-compile_error!("feature \"safe\" and feature \"unsafe\" cannot be enabled at the same time");
+static ARGS: Lazy<Args> = Lazy::new(args_handle);
+static STDOUT: Lazy<Term> = Lazy::new(Term::stdout);
+static STDERR: Lazy<Term> = Lazy::new(Term::stderr);
+static LINE_ENDING: Lazy<&str> = Lazy::new(|| LineEnding::from_current_platform().as_str());
 
-rust_i18n::i18n!("language", fallback = "zh-CN");
+rust_i18n::i18n!("language", fallback = ["en-US", "zh-CN"]);
 
 fn main() {
     init_locale();
+    setup_ctrlc_handle();
 
-    let args = args_handle();
-    let mut stdout = Term::stdout();
-    let stderr = Term::stderr();
-
-    #[cfg(debug_assertions)]
-    let _ = stderr.write_line(format!("Args: {:#?}", args).as_str());
-
-    setup_ctrlc_handle(stdout.clone(), stderr.clone());
-
-    if args.hide_cursor {
-        stdout.hide_cursor().unwrap()
+    if ARGS.hide_cursor {
+        STDOUT.hide_cursor().unwrap()
     }
 
-    for name in args.files {
-        let reader = match create_reader(name.as_str()) {
-            Ok(it) => it,
-            Err(it) => {
-                let _ = stderr.write_line(
-                    t!("error.can_not_open_file", name = it.0, error = it.1)
-                        .to_string()
-                        .as_str()
-                );
-                continue;
-            }
-        };
+    slow_scan_print();
 
-        let iter = create_iterator(reader, args.line_mode);
-
-        stdout
-            .slow_scan_write(iter, args.time)
-            .unwrap_or_else(|it| panic!("{}\n{}", t!("panic.io_error_on_slow_scan_print"), it));
-    }
-
-    if args.hide_cursor {
-        stdout.show_cursor().unwrap()
+    if ARGS.hide_cursor {
+        STDOUT.show_cursor().unwrap()
     }
 }
 
@@ -95,13 +78,18 @@ fn args_handle() -> Args {
             .action(ArgAction::Append)
             .default_value("-")
             .help(t!("clap.files.help").to_string()),
+        Arg::new("version")
+            .short('v')
+            .long("version")
+            .action(ArgAction::Version)
+            .help(t!("clap.version.help").to_string()),
         Arg::new("help")
             .short('h')
             .short_alias('?')
             .long("help")
             .action(ArgAction::Help)
-            .help(format!("{}", t!("clap.help")))
-            .long_help(format!("{}", t!("clap.long_help")))
+            .help(t!("clap.help").to_string())
+            .long_help(t!("clap.long_help").to_string())
     ];
 
     let matches = Command::new(env!("CARGO_PKG_NAME"))
@@ -113,7 +101,7 @@ fn args_handle() -> Args {
         .args(&args)
         .get_matches();
 
-    let time = match matches.get_one::<String>("delay") {
+    let delay = match matches.get_one::<String>("delay") {
         Some(it) => duration_str::parse_std(it).unwrap_or_else(|it| panic!("{}", t!("panic.convert_string_to_duration_error", error = it))),
         #[cfg(feature = "unsafe")]
         None => unsafe { std::hint::unreachable_unchecked() },
@@ -146,55 +134,58 @@ fn args_handle() -> Args {
     };
 
     Args {
-        time,
+        delay,
         line_mode,
         hide_cursor,
         files
     }
 }
 
-fn setup_ctrlc_handle(stdout: Term, stderr: Term) {
+#[inline]
+fn setup_ctrlc_handle() {
     ctrlc::set_handler(move || {
-        stdout.show_cursor().unwrap();
+        STDOUT.show_cursor().unwrap();
         exit(1)
     })
     .unwrap_or_else(|it| {
-        let _ = stderr.write_line(
-            t!("error.set_ctrlc_handle_error", error = it)
-                .to_string()
-                .as_str()
-        );
+        let _ = STDERR.write_line(t!("error.set_ctrlc_handle_error", error = it).as_ref());
     });
 }
 
-fn create_reader(name: &str) -> Result<BufReader<Box<dyn io::Read>>, (&str, io::Error)> {
-    if name == "-" {
-        let stdin = io::stdin();
-        Ok(BufReader::new(Box::new(stdin)))
-    } else {
-        let file = match File::open(Path::new(name)) {
+#[inline]
+fn slow_scan_print() {
+    let readers = ARGS
+        .files
+        .iter()
+        .map(|it| match InputSource::open(it) {
             Ok(it) => it,
-            Err(err) => return Err((name, err))
-        };
-        Ok(BufReader::new(Box::new(file)))
-    }
-}
+            Err(it) => {
+                let _ = STDERR.write_line(it.to_string().as_str());
+                InputSource::Empty
+            }
+        })
+        .collect::<Vec<InputSource>>();
 
-fn create_iterator(reader: BufReader<Box<dyn io::Read>>, line_mode: bool) -> Box<dyn Iterator<Item = String>> {
-    let iter = reader.lines().map(|it| {
-        let mut it = it.unwrap_or_else(|_| String::new());
-        #[cfg(target_family = "windows")]
-        it.push('\r');
-        it.push('\n');
-        it
-    });
+    let reader = InputSource::concat(readers, Box::new(|_, _| ErrorAction::Continue));
 
-    if line_mode {
-        Box::new(iter)
+    let mut reader = BufReader::new(reader);
+
+    if ARGS.line_mode {
+        let iter = reader.lines().map(|it| {
+            let mut it = it.unwrap_or_else(|_| String::new());
+            it.push_str(&LINE_ENDING);
+            it
+        });
+
+        STDOUT.clone().slow_scan_write(iter, ARGS.delay)
     } else {
-        Box::new(
-            iter.flat_map(|it| it.chars().collect::<Vec<_>>())
-                .map(|it| it.to_string())
-        )
+        let iter = reader.chars().map(|it| it.unwrap());
+        #[cfg(not(feature = "unicode-width"))]
+        {
+            STDOUT.clone().slow_scan_write(iter, ARGS.delay)
+        }
+        #[cfg(feature = "unicode-width")]
+        STDOUT.clone().slow_scan_write_use_chars(iter, ARGS.delay)
     }
+    .unwrap_or_else(|it| panic!("{}\n{}", t!("panic.io_error_on_slow_scan_print"), it));
 }
