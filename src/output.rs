@@ -1,8 +1,6 @@
-use std::{
-    io::{self, Write},
-    thread,
-    time::Duration
-};
+use std::io::{self, Write};
+use std::thread;
+use std::time::Duration;
 
 /// 提供缓慢扫描式写入功能的 trait，模拟逐字符输出效果
 ///
@@ -49,7 +47,11 @@ pub trait SlowScanWrite {
     /// let mut writer = Vec::new();
     /// writer.slow_scan_write(["Hello", " World!"].iter(), Duration::from_millis(50)).unwrap();
     /// ```
-    fn slow_scan_write<I>(&mut self, iter: I, delay: Duration) -> Result<(), io::Error>
+    fn slow_scan_write<I>(
+        &mut self,
+        iter: I,
+        delay: Duration
+    ) -> Result<(), io::Error>
     where
         I: Iterator,
         I::Item: AsRef<[u8]>;
@@ -75,14 +77,21 @@ pub trait SlowScanWrite {
     /// # Notes
     /// - Depends on `unicode-width` crate for width calculation
     /// - CJK full-width characters (e.g., Chinese) will trigger double delay
-    #[cfg(feature = "unicode-width")]
-    fn slow_scan_write_use_chars<I>(&mut self, iter: I, halt_width_delay: Duration) -> Result<(), io::Error>
+    fn slow_scan_write_use_chars<I>(
+        &mut self,
+        iter: I,
+        halt_width_delay: Duration
+    ) -> Result<(), io::Error>
     where
         I: Iterator<Item = char>;
 }
 
 impl<W: Write> SlowScanWrite for W {
-    fn slow_scan_write<I>(&mut self, mut iter: I, delay: Duration) -> Result<(), io::Error>
+    fn slow_scan_write<I>(
+        &mut self,
+        mut iter: I,
+        delay: Duration
+    ) -> Result<(), io::Error>
     where
         I: Iterator,
         I::Item: AsRef<[u8]>
@@ -109,8 +118,11 @@ impl<W: Write> SlowScanWrite for W {
         }
     }
 
-    #[cfg(feature = "unicode-width")]
-    fn slow_scan_write_use_chars<I>(&mut self, mut iter: I, halt_width_delay: Duration) -> Result<(), io::Error>
+    fn slow_scan_write_use_chars<I>(
+        &mut self,
+        mut iter: I,
+        halt_width_delay: Duration
+    ) -> Result<(), io::Error>
     where
         I: Iterator<Item = char>
     {

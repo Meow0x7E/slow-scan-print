@@ -1,55 +1,54 @@
-# vim:set ft=yaml sts=2 ts=2 sw=2 et:
 _version: 1
 
-clap:
-  about: |-
-    Read text from stdin or specified files, and print with configurable delays in character-by-character or line-by-line mode.
-    Tool name inspired by Slow Scan Television (SSTV)
-  help: Show help summary (use "--help" for detailed usage)
-  long_help: Show help message (use "-h" for brief summary)
-  version:
-    help: Show version number
-  delay:
-    help: 'Set character print delay duration (default unit: seconds/s). Supports basic arithmetic (+, *). See "--help" for full syntax'
-    long_help: |-
-      Set character print delay duration (default unit: seconds/s). Supports basic arithmetic (+, *)
+main:
+  clap:
+    about: |-
+      Read text from stdin or specified files, and print with configurable delays in character-by-character or line-by-line mode.
+      Tool name inspired by Slow Scan Television (SSTV)
+    help: Show help summary (use "--help" for detailed usage)
+    long_help: Show help message (use "-h" for brief summary)
+    version:
+      help: Show version number
+    delay:
+      help: 'Set character print delay duration (default unit: seconds/s). Supports basic arithmetic (+, *). See "--help" for full syntax'
+      long_help: |-
+        Set character print delay duration (default unit: seconds/s). Supports basic arithmetic (+, *)
 
-      Time unit reference:
-      Unit      Time Scale    Supported Aliases (case-insensitive)
-      --------  ------------  ------------------------------------
-      y         year          y, year
-      mon       month         mon, month
-      w         week          w, week
-      d         day           d, day
-      h         hour          h, hr, hour
-      m         minute        m, M, minute, min
-      s         second        s, second, sec
-      ms        millisecond   ms, millisecond, msec
-      µs        microsecond   µs, µsecond, microsecond, µsec
-      ns        nanosecond    ns, nanosecond, nsec
+        Time unit reference:
+        Unit      Time Scale    Supported Aliases (case-insensitive)
+        --------  ------------  ------------------------------------
+        y         year          y, year
+        mon       month         mon, month
+        w         week          w, week
+        d         day           d, day
+        h         hour          h, hr, hour
+        m         minute        m, M, minute, min
+        s         second        s, second, sec
+        ms        millisecond   ms, millisecond, msec
+        µs        microsecond   µs, µsecond, microsecond, µsec
+        ns        nanosecond    ns, nanosecond, nsec
 
-      Examples:
-      1.5h30m   => 1 hour 30 minutes
-      100ms * 2 => 100ms * 2 = 200ms
-      1 + 1 + 100ms => 1s + 1s + 100ms = 2100ms
-  hide_cursor:
-    help: Hide terminal cursor during printing and restore after exit
-  line_mode:
-    help: Enable line-by-line printing mode
-  files:
-    help: Specify input file paths (supports multiple files). Read from stdin when argument is "-" or file not found
-error:
-  set_ctrlc_handle_error: |-
-    Failed to register Ctrl+C handler. Terminal cursor may not restore properly on abnormal exit.
-    You can suppress this message by closing stderr.
-  can_not_open_file: 'Cannot open file "%{name}": %{error}'
-panic:
-  convert_string_to_duration_error: Invalid time format argument. See time format examples with "--help"
-  io_error_on_slow_scan_print: |-
-    I/O error occurred during slow-scan printing
-    %{error}
-crate:
-  input:
-    ErrorKind:
-      CannotOpenUri: "Failed to open '%{uri}': %{source}"
-      UriIsEmpty: "URI cannot be empty"
+        Examples:
+        1.5h30m   => 1 hour 30 minutes
+        100ms * 2 => 100ms * 2 = 200ms
+        1 + 1 + 100ms => 1s + 1s + 100ms = 2100ms
+    hide_cursor:
+      help: Hide terminal cursor during printing and restore after exit
+    line_mode:
+      help: Enable line-by-line printing mode
+    files:
+      help: Specify input file paths (supports multiple files). Read from stdin when argument is "-" or file not found
+  error:
+    set_ctrlc_handle_error: |-
+      Failed to register Ctrl+C handler. Terminal cursor may not restore properly on abnormal exit.
+      You can suppress this message by closing stderr.
+  panic:
+    convert_string_to_duration_error: Invalid time format argument. See time format examples with "--help"
+    io_error_on_slow_scan_print: |-
+      I/O error occurred during slow-scan printing
+      %{error}
+
+input:
+  ErrorKind:
+    CannotOpenUri: "failed to open '%{uri}': %{source}"
+    UriIsEmpty: "uri cannot be empty"

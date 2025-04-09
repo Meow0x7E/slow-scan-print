@@ -6,7 +6,7 @@ use rust_i18n::t;
 
 /// 表示输入源的类型，支持标准输入、文件和空输入
 ///
-/// 提供从 URI 字符串创建输入源的能力，支持多种输入源的串联操作
+/// 提供从 URI 字符串创建输入源的能力
 ///
 /// ---
 ///
@@ -72,56 +72,6 @@ impl InputSource {
             source: Some(it)
         })
     }
-
-    /// 从多个 URI 创建串联输入源
-    ///
-    /// # 参数
-    /// - `uris`: 要打开的 URI 切片
-    /// - `handle`: 错误处理回调函数
-    ///
-    /// # 错误
-    /// 当打开任意 URI 失败时返回错误
-    ///
-    /// ---
-    ///
-    /// Create concatenated input source from multiple URIs
-    ///
-    /// # Arguments
-    /// - `uris`: Slice of URIs to open
-    /// - `handle`: Error handling callback
-    ///
-    /// # Errors
-    /// Returns error if any URI fails to open
-    pub fn from_uris<'a, F>(uris: &'a [&'a str], handle: F) -> Result<ConcatInputSource<F>, Error<'a>>
-    where
-        F: FnMut(io::Error, usize) -> ErrorAction
-    {
-        let mut sources = Vec::with_capacity(uris.len());
-        for uri in uris {
-            sources.push(Self::open(uri)?);
-        }
-        Ok(Self::concat(sources, handle))
-    }
-
-    /// 将多个输入源串联为单个输入流
-    ///
-    /// # 参数
-    /// - `sources`: 要串联的输入源集合
-    /// - `handle`: 错误处理回调函数
-    ///
-    /// ---
-    ///
-    /// Concatenate multiple input sources into single stream
-    ///
-    /// # Arguments
-    /// - `sources`: Collection of input sources to concatenate
-    /// - `handle`: Error handling callback
-    pub fn concat<F>(sources: Vec<Self>, handle: F) -> ConcatInputSource<F>
-    where
-        F: FnMut(io::Error, usize) -> ErrorAction
-    {
-        ConcatInputSource::new(sources, handle)
-    }
 }
 
 impl io::Read for InputSource {
@@ -130,94 +80,6 @@ impl io::Read for InputSource {
             InputSource::Stdin(it) => it.read(buf),
             InputSource::File(it) => it.read(buf),
             InputSource::Empty => Ok(0)
-        }
-    }
-}
-
-/// 错误处理操作指令
-///
-/// ---
-///
-/// Error handling operation instructions
-#[derive(Debug)]
-pub enum ErrorAction {
-    /// 继续处理下一个输入源
-    ///
-    /// ---
-    ///
-    /// Continue processing next input source
-    Continue,
-    /// 中止处理并返回错误
-    ///
-    /// ---
-    ///
-    /// Abort processing and return error
-    Abort(io::Error)
-}
-
-/// 串联输入源处理器
-///
-/// 将多个输入源按顺序连接，提供统一的读取接口
-///
-/// ---
-///
-/// Concatenated input source handler
-///
-/// Joins multiple input sources sequentially, provides unified reading interface
-pub struct ConcatInputSource<F>
-where
-    F: FnMut(io::Error, usize) -> ErrorAction
-{
-    sources: Vec<InputSource>,
-    current: usize,
-    error_handler: F
-}
-
-/// 创建新的串联输入源
-///
-/// # 参数
-/// - `sources`: 要串联的输入源集合
-/// - `error_handler`: 自定义错误处理函数
-///
-/// ---
-///
-/// Create new concatenated input source
-///
-/// # Arguments
-/// - `sources`: Collection of input sources to concatenate
-/// - `error_handler`: Custom error handler
-impl<F> ConcatInputSource<F>
-where
-    F: FnMut(io::Error, usize) -> ErrorAction
-{
-    pub fn new(sources: Vec<InputSource>, error_handler: F) -> Self {
-        Self {
-            sources,
-            current: 0,
-            error_handler
-        }
-    }
-}
-
-impl<F> io::Read for ConcatInputSource<F>
-where
-    F: FnMut(io::Error, usize) -> ErrorAction
-{
-    fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        let source = &mut self.sources[self.current];
-        match source.read(buf) {
-            Ok(0) => {
-                self.current += 1;
-                Ok(0)
-            }
-            Ok(it) => Ok(it),
-            Err(it) => match (self.error_handler)(it, self.current) {
-                ErrorAction::Continue => {
-                    self.current += 1;
-                    Ok(0)
-                }
-                ErrorAction::Abort(it) => Err(it)
-            }
         }
     }
 }
@@ -297,15 +159,23 @@ impl fmt::Display for Error<'_> {
                     .as_ref()
                     .map_or_else(String::new, |it| it.to_string());
 
-                write!(f, "{}", t!("crate.input.ErrorKind.CannotOpenUri", uri = self.uri, source = source))
+                #[rustfmt::skip]
+                write!(f, "{}", t!(
+                    "input.ErrorKind.CannotOpenUri",
+                    uri = self.uri,
+                    source = source
+                ))?;
+                Ok(())
             }
             ErrorKind::UriIsEmpty => {
-                write!(f, "{}", t!("crate.input.ErrorKind.UriIsEmpty"))
+                write!(f, "{}", t!("input.ErrorKind.UriIsEmpty"))
             }
         }
     }
 }
 
 impl error::Error for Error<'_> {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> { self.source.as_ref().map(|e| e as _) }
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+        self.source.as_ref().map(|e| e as _)
+    }
 }
