@@ -4,7 +4,7 @@ use std::process::exit;
 use std::time::Duration;
 
 use chain_reader::*;
-use clap::{Arg, ArgAction, Command, arg};
+use clap::{Arg, ArgAction, Command};
 use console::Term;
 use line_ending::LineEnding;
 use once_cell::sync::Lazy;
@@ -46,7 +46,10 @@ fn main() {
 impl Args {
     pub fn new() -> Self {
         let args = [
-            arg!(delay: -d --delay <TIME>)
+            Arg::new("delay")
+                .short('d')
+                .long("delay")
+                .value_name("TIME")
                 .short_alias('t')
                 .alias("time")
                 .action(ArgAction::Set)
@@ -90,33 +93,28 @@ impl Args {
             .args(&args)
             .get_matches();
 
-        let delay = match matches.get_one::<String>("delay") {
-            Some(it) => duration_str::parse_std(it).unwrap_or_else(|it| {
-                panic!(
-                    "{}",
-                    t!(
-                        "main.panic.convert_string_to_duration_error",
-                        error = it
-                    )
-                )
-            }),
-            None => unsafe { std::hint::unreachable_unchecked() }
-        };
+        let unreachable_msg = t!("main.panic.unreachable");
 
-        let line_mode = match matches.get_one::<bool>("line-mode") {
-            Some(it) => *it,
-            None => unsafe { std::hint::unreachable_unchecked() }
-        };
+        let delay = matches
+            .get_one::<String>("delay")
+            .unwrap_or_else(|| unreachable!("{}", unreachable_msg));
+        let delay = duration_str::parse_std(delay).unwrap_or_else(|_| {
+            panic!("{}", t!("main.panic.convert_string_to_duration_error"))
+        });
 
-        let hide_cursor = match matches.get_one::<bool>("hide-cursor") {
-            Some(it) => *it,
-            None => unsafe { std::hint::unreachable_unchecked() }
-        };
+        let line_mode = *matches
+            .get_one::<bool>("line-mode")
+            .unwrap_or_else(|| unreachable!("{}", unreachable_msg));
 
-        let files = match matches.get_many::<String>("files") {
-            Some(it) => it.map(|it| it.to_owned()).collect::<Vec<String>>(),
-            None => unsafe { std::hint::unreachable_unchecked() }
-        };
+        let hide_cursor = *matches
+            .get_one::<bool>("hide-cursor")
+            .unwrap_or_else(|| unreachable!("{}", unreachable_msg));
+
+        let files = matches
+            .get_many::<String>("files")
+            .unwrap_or_else(|| unreachable!("{}", unreachable_msg))
+            .map(|it| it.to_owned())
+            .collect::<Vec<String>>();
 
         Self {
             delay,

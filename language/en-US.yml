@@ -43,6 +43,7 @@ main:
       Failed to register Ctrl+C handler. Terminal cursor may not restore properly on abnormal exit.
       You can suppress this message by closing stderr.
   panic:
+    unreachable: "An unreachable code path was triggered. Please submit a bug report to https://github.com/Meow0x7E/slow-scan-print with the environment information and reproduction steps."
     convert_string_to_duration_error: Invalid time format argument. See time format examples with "--help"
     io_error_on_slow_scan_print: |-
       I/O error occurred during slow-scan printing

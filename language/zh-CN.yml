@@ -43,6 +43,7 @@ main:
       无法注册 Ctrl+C 中断处理程序。可能导致程序异常退出时终端光标显示状态无法恢复。
       你可以通过关闭 stderr 来抑制此消息。
   panic:
+    unreachable: "无法到达的代码路径被触发。请携带环境信息和复现步骤至 https://github.com/Meow0x7E/slow-scan-print 提交错误报告"
     convert_string_to_duration_error: 无效的时间格式参数，请使用 "--help" 参数查看时间格式示例
     io_error_on_slow_scan_print: |-
       慢扫描打印过程中发生 I/O 错误
