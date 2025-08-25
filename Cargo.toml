@@ -1,12 +1,16 @@
 [package]
 name = "slow-scan-print"
-version = "2.0.0"
+version = "2.0.1"
 authors = ["Meow0x7E <Meow0x7E@outlook.com>"]
 edition = "2024"
 description = "Text is printed at fixed intervals by character or by line, and its name is inspired by SSTV (Slow Scan Television)."
 license = "MIT"
 repository = "https://github.com/Meow0x7E/slow-scan-print"
-categories = ["command-line-interface", "command-line-utilities"]
+categories = [
+    "command-line-interface",
+    "command-line-utilities",
+    "rust-patterns",
+]
 
 [features]
 default = ["bin"]

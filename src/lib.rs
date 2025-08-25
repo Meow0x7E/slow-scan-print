@@ -20,8 +20,8 @@ use getset::{Getters, Setters};
 /// use slow_scan_print::SlowScanConfig;
 ///
 /// let config = SlowScanConfig::default()
-///     .with_base_delay(Duration::from_millis(30))
-///     .with_full_width_delay(Duration::from_millis(60));
+///     .set_base_delay(Duration::from_millis(30))
+///     .set_full_width_delay(Duration::from_millis(60));
 /// ```
 ///
 /// ---
@@ -143,7 +143,7 @@ pub trait SlowScanWrite {
     /// use slow_scan_print::{SlowScanConfig, SlowScanWrite};
     ///
     /// let config = SlowScanConfig::default()
-    ///     .with_base_delay(Duration::from_millis(50));
+    ///     .set_base_delay(Duration::from_millis(50));
     /// let mut writer = Vec::new();
     /// writer.slow_scan_write_by_chunks(["Hello", " World!"].iter(), config).unwrap();
     /// ```
