@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 use std::fs::File;
-use std::{error, fmt, io};
+use std::{fmt, io};
 
 use rust_i18n::t;
 
@@ -14,7 +14,7 @@ use rust_i18n::t;
 ///
 /// Provides capabilities to create from URI strings and concatenate multiple sources
 #[derive(Debug)]
-pub enum InputSource {
+pub(crate) enum InputSource {
     /// 标准输入源
     ///
     /// ---
@@ -26,13 +26,7 @@ pub enum InputSource {
     /// ---
     ///
     /// File input source
-    File(File),
-    /// 空输入源（读取时返回 EOF）
-    ///
-    /// ---
-    ///
-    /// Empty input source (returns EOF when read)
-    Empty
+    File(File)
 }
 
 impl InputSource {
@@ -53,7 +47,7 @@ impl InputSource {
     ///
     /// # Errors
     /// Returns [`Error`] containing reasons when failing to open resource
-    pub fn open(uri: &str) -> Result<Self, Error> {
+    pub(crate) fn open(uri: &str) -> Result<Self, Error> {
         if uri.is_empty() {
             return Err(Error {
                 kind: ErrorKind::UriIsEmpty,
@@ -78,8 +72,7 @@ impl io::Read for InputSource {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         match self {
             InputSource::Stdin(it) => it.read(buf),
-            InputSource::File(it) => it.read(buf),
-            InputSource::Empty => Ok(0)
+            InputSource::File(it) => it.read(buf)
         }
     }
 }
@@ -90,7 +83,7 @@ impl io::Read for InputSource {
 ///
 /// Input source error types
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ErrorKind {
+pub(crate) enum ErrorKind {
     /// URI 为空字符串
     ///
     /// ---
@@ -105,13 +98,13 @@ pub enum ErrorKind {
     CannotOpenUri
 }
 
-/// 输入系统错误封装
+/// 输入源错误
 ///
 /// 包含错误类型、相关 URI 和底层错误原因
 ///
 /// ---
 ///
-/// Input system error wrapper
+/// Input source error
 ///
 /// Contains error type, related URI and underlying error cause
 #[derive(Debug)]
@@ -121,61 +114,25 @@ pub struct Error<'a> {
     source: Option<io::Error>
 }
 
-impl Error<'_> {
-    /// 获取错误类型
-    ///
-    /// ---
-    ///
-    /// Get error kind
-    pub fn kind(&self) -> ErrorKind { self.kind }
-
-    /// 获取相关 URI 引用
-    ///
-    /// ---
-    ///
-    /// Get related URI reference
-    pub fn uri(&self) -> &str { self.uri.as_ref() }
-
-    /// 将借用数据转换为自有数据
-    ///
-    /// ---
-    ///
-    /// Convert borrowed data to owned
-    pub fn into_owned(self) -> Error<'static> {
-        Error {
-            kind: self.kind,
-            uri: Cow::Owned(self.uri.into_owned()),
-            source: self.source
-        }
-    }
-}
-
 impl fmt::Display for Error<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.kind {
             ErrorKind::CannotOpenUri => {
-                let source = self
+                let src = self
                     .source
                     .as_ref()
                     .map_or_else(String::new, |it| it.to_string());
 
-                #[rustfmt::skip]
-                write!(f, "{}", t!(
-                    "input.ErrorKind.CannotOpenUri",
-                    uri = self.uri,
-                    source = source
-                ))?;
+                let msg =
+                    t!("error.cannot_open_uri", uri = self.uri, src = src);
+
+                f.write_str(msg.as_ref())?;
+
                 Ok(())
             }
             ErrorKind::UriIsEmpty => {
-                write!(f, "{}", t!("input.ErrorKind.UriIsEmpty"))
+                f.write_str(t!("error.uri_is_empty").as_ref())
             }
         }
-    }
-}
-
-impl error::Error for Error<'_> {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        self.source.as_ref().map(|e| e as _)
     }
 }

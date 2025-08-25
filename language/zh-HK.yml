@@ -1,56 +1,51 @@
 # 该文件是使用 OpenCC 从 zh-CN.yml 转换的，请不要直接编辑它
 _version: 1
 
-main:
-  clap:
-    about: |-
-      從標準輸入或指定文件中讀取文本，按字符或逐行模式以可配置的時間間隔進行打印輸出。
-      工具名稱靈感來源於慢掃描電視 (Slow Scan Television, SSTV)
-    help: 顯示幫助摘要 (使用 "--help" 查看詳細使用説明)
-    long_help: 顯示幫助信息 (使用 "-h" 查看摘要)
-    version:
-      help: 顯示版本號
-    delay:
-      help: 設置打印文本的字符打印間隔時間 (默認單位：秒/s)，支持簡單算術運算 (+、*)，使用 --help 查看完整語法説明
-      long_help: |-
-        設置打印文本的字符打印間隔時間 (默認單位：秒/s)，支持簡單算術運算 (+、*)
+clap:
+  about: |-
+    從標準輸入或文件中讀取文本，按逐字符或逐行模式以可配置的時間間隔打印輸出。
+    工具名稱靈感來源於慢掃描電視（SSTV）。
+  help: 顯示幫助摘要（使用 --help 查看詳情）
+  long_help: 顯示幫助信息（使用 -h 查看摘要）
+  version: 顯示版本號
+  delay:
+    help: 設置字符打印間隔時間（默認單位：秒），支持簡單算術運算（+、*）。使用 --help 查看完整語法
+    long_help: |-
+      設置字符打印間隔時間（默認單位：秒），支持簡單算術運算（+、*）
 
-        時間單位對照表：
-        單位      時間尺度     支持別名 (不區分大小寫)
-        --------  -----------  ------------------------------------
-        y         年           y, year, 年
-        mon       月           mon, month, 月
-        w         周           w, week, 周
-        d         日           d, day, 日
-        h         小時         h, hr, hour, 小時
-        m         分鐘         m, M, minute, min, 分鐘
-        s         秒           s, second, sec, 秒
-        ms        毫秒         ms, millisecond, msec, 毫秒
-        µs        微秒         µs, µsecond, microsecond, µsec, 微秒
-        ns        納秒         ns, nanosecond, nsec, 納秒
+      時間單位對照：
+      單位      時間尺度     別名（不區分大小寫）
+      --------  -----------  --------------------------
+      y         年           y, year, 年
+      mon       月           mon, month, 月
+      w         周           w, week, 周
+      d         日           d, day, 日
+      h         小時         h, hr, hour, 小時
+      m         分鐘         m, M, minute, min, 分鐘
+      s         秒           s, second, sec, 秒
+      ms        毫秒         ms, millisecond, msec, 毫秒
+      µs        微秒         µs, µsecond, microsecond, µsec, 微秒
+      ns        納秒         ns, nanosecond, nsec, 納秒
 
-        示例：
-        1.5h30m   => 1小時30分鐘
-        100ms * 2 => 100毫秒 * 2 = 200毫秒
-        1 + 1 + 100ms => 1秒 + 1秒 + 100毫秒 = 2100毫秒
-    hide_cursor:
-      help: 打印時隱藏終端光標，並在程序結束後恢復顯示
-    line_mode:
-      help: 啓用逐行打印模式
-    files:
-      help: 指定輸入文件路徑列表 (支持多文件輸入)，當參數為 "-" 或文件不存在時從 stdin 讀取
-  error:
-    set_ctrlc_handle_error: |-
-      無法註冊 Ctrl+C 中斷處理程序。可能導致程序異常退出時終端光標顯示狀態無法恢復。
-      你可以通過關閉 stderr 來抑制此消息。
-  panic:
-    unreachable: "無法到達的代碼路徑被觸發。請攜帶環境信息和復現步驟至 https://github.com/Meow0x7E/slow-scan-print 提交錯誤報告"
-    convert_string_to_duration_error: 無效的時間格式參數，請使用 "--help" 參數查看時間格式示例
-    io_error_on_slow_scan_print: |-
-      慢掃描打印過程中發生 I/O 錯誤
-      %{error}
+      示例：
+      1.5h30m   → 1小時30分鐘
+      100ms * 2 → 200毫秒
+      1 + 1 + 100ms → 2100毫秒
+  full_width_delay: 設置全寬字符的打印時間，默認值為 delay 的兩倍，可用值和 delay 參數相同
+  control_char_delay: 設置控制字符的打印時間，默認值為零，可用值和 delay 參數相同
+  tail_delay: 是否在最後一個字符處依然添加延遲，默認行為將在最後一個字符打印完畢後直接退出程序而不等待
+  hide_cursor: 打印時隱藏終端光標，結束後恢復顯示
+  line_mode: 啓用逐行打印模式
+  files: 指定輸入文件路徑（支持多文件）。未提供參數或為“-”時從 stdin 讀取（如需選擇名為“-”的文件，請使用“./-”）
 
-input:
-  ErrorKind:
-    CannotOpenUri: "無法打開 '%{uri}': %{source}"
-    UriIsEmpty: uri 不能為空
+error:
+  set_ctrlc_handle_error: |-
+    無法註冊 Ctrl+C 中斷處理程序，可能導致退出時光標狀態異常。
+    可通過關閉 stderr 屏蔽此提示。
+  unreachable: "觸發了不可達代碼路徑。請攜帶環境與復現步驟至 https://github.com/Meow0x7E/slow-scan-print 提交錯誤報告"
+  convert_string_to_duration: "無效的時間格式參數，請使用 --help 查看示例"
+  io_error_on_slow_scan_print: |-
+    打印過程中發生 I/O 錯誤：
+    %{error}
+  cannot_open_uri: "無法打開“%{uri}”：%{src}"
+  uri_is_empty: "URI 不能為空"
